@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>年化報酬率比較試算機（手機友善）</title>
+  <style>
+    /* 之前給你的響應式 CSS 直接貼這裡 */
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background-color: #f7fbff;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    h2 {
+      color: #2c3e50;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      max-width: 100%;
+      font-size: 16px;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      font-size: 18px;
+      padding: 12px;
+      margin-top: 20px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    .result {
+      margin-top: 30px;
+      font-size: 18px;
+      background: #eaf6ff;
+      padding: 20px;
+      border-left: 4px solid #3498db;
+    }
+
+    canvas {
+      margin-top: 30px;
+      width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>📈 年化報酬率複利比較試算機</h2>
+
+  <label for="pmt">每年投入金額：</label>
+  <input type="number" id="pmt" value="120000" placeholder="例如：120000" />
+
+  <label for="years">投資年數：</label>
+  <input type="number" id="years" value="17" placeholder="例如：17" />
+
+  <label for="rateA">報酬率 A（%）：</label>
+  <input type="number" id="rateA" value="4.7" step="0.1" placeholder="例如：4.7" />
+
+  <label for="rateB">報酬率 B（%）：</label>
+  <input type="number" id="rateB" value="8" step="0.1" placeholder="例如：8" />
+
+  <button onclick="calculate()">計算比較</button>
+
+  <div class="result" id="output"></div>
+
+  <canvas id="growthChart"></canvas>
+
+  <script>
+    function generateYearlyValues(pmt, rate, years) {
+      const result = [];
+      for (let i = 1; i <= years; i++) {
+        const fv = pmt * ((Math.pow(1 + rate, i) - 1) / rate);
+        result.push(Math.round(fv));
+      }
+      return result;
+    }
+
+    function calculate() {
+      const pmt = parseFloat(document.getElementById("pmt").value);
+      const years = parseInt(document.getElementById("years").value);
+      const rateA = parseFloat(document.getElementById("rateA").value) / 100;
+      const rateB = parseFloat(document.getElementById("rateB").value) / 100;
+
+      if (isNaN(pmt) || isNaN(years) || isNaN(rateA) || isNaN(rateB)) {
+        document.getElementById("output").innerHTML = "❌ 請正確填寫所有欄位。";
+        return;
+      }
+
+      const fv = (pmt, rate, n) => pmt * ((Math.pow(1 + rate, n) - 1) / rate);
+      const fvA = fv(pmt, rateA, years);
+      const fvB = fv(pmt, rateB, years);
+      const diff = fvB - fvA;
+
+      document.getElementById("output").innerHTML =
+        `📌 報酬率 A (${(rateA * 100).toFixed(1)}%)：<strong>${fvA.toLocaleString()} 元</strong><br>` +
+        `📌 報酬率 B (${(rateB * 100).toFixed(1)}%)：<strong>${fvB.toLocaleString()} 元</strong><br><br>` +
+        `💰 <strong>兩者相差：約 ${diff.toLocaleString()} 元</strong>`;
+
+      const labels = Array.from({ length: years }, (_, i) => `第${i + 1}年`);
+      const valuesA = generateYearlyValues(pmt, rateA, years);
+      const valuesB = generateYearlyValues(pmt, rateB, years);
+
+      if (window.myChart) {
+        window.myChart.destroy();
+      }
+
+      const ctx = document.getElementById("growthChart").getContext("2d");
+      window.myChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `報酬率 A (${(rateA * 100).toFixed(1)}%)`,
+              data: valuesA,
+              borderColor: "blue",
+              fill: false,
+              tension: 0.2,
+            },
+            {
+              label: `報酬率 B (${(rateB * 100).toFixed(1)}%)`,
+              data: valuesB,
+              borderColor: "green",
+              fill: false,
+              tension: 0.2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom" },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.formattedValue} 元`,
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: (value) => `${value.toLocaleString()}`,
+              },
+            },
+          },
+        },
+      });
+    }
+  </script>
+</body>
+</html>
